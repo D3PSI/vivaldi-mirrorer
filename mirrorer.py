@@ -1,9 +1,9 @@
-import errno
 import lzma
 import os
 import shutil
 import tarfile
 import time
+from distutils.dir_util import copy_tree
 
 import requests
 from git import Repo
@@ -28,17 +28,7 @@ def extract_to_repo(download):
             content = tar.extractall("./vivaldi/")
     file_names = os.listdir("./vivaldi/vivaldi-source/")
     for file_name in file_names:
-        try:
-            shutil.copytree(
-                "./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name
-            )
-        except OSError as exc:
-            if exc.errno in (errno.ENOTDIR, errno.EINVAL):
-                shutil.copy(
-                    "./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name
-                )
-            else:
-                raise
+        copy_tree("./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name)
     os.remove(download)
     shutil.rmtree("./vivaldi/vivaldi-source")
 
@@ -63,7 +53,7 @@ def vivaldi_versions():
     entries = driver.find_elements(By.XPATH, XPATH)
     num_versions = len(entries)
     versions = []
-    for i in range(2, num_versions - 1):
+    for i in range(2, num_versions):
         versions.append(
             driver.find_element(By.XPATH, XPATH + "[" + str(i) + "]" + "/td[1]/a")
         )
