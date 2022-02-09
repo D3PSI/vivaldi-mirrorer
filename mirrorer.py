@@ -1,3 +1,4 @@
+import errno
 import lzma
 import os
 import shutil
@@ -27,7 +28,17 @@ def extract_to_repo(download):
             content = tar.extractall("./vivaldi/")
     file_names = os.listdir("./vivaldi/vivaldi-source/")
     for file_name in file_names:
-        shutil.move(os.path.join("./vivaldi/vivaldi-source", file_name), "./vivaldi")
+        try:
+            shutil.copytree(
+                "./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name
+            )
+        except OSError as exc:
+            if exc.errno in (errno.ENOTDIR, errno.EINVAL):
+                shutil.copy(
+                    "./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name
+                )
+            else:
+                raise
     os.remove(download)
     shutil.rmtree("./vivaldi/vivaldi-source")
 
@@ -36,7 +47,8 @@ def commit(version):
     repo = Repo("./vivaldi/")
     files = repo.git.diff(None, name_only=True)
     for f in files.split("\n"):
-        repo.git.add(f)
+        if f != "":
+            repo.git.add(f)
     repo.git.commit("-m", "[Version] {}".format(version))
     repo.git.push()
 
