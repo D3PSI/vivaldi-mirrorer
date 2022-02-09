@@ -1,0 +1,12 @@
+[Unit]
+Description=Vivaldi Code Mirror
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+ExecStart=/home/ubuntu/app/vivaldi-mirrorer/run.sh
+
+[Install]
+WantedBy=multi-user.target
