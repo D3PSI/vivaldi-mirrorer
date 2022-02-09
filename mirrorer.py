@@ -1,6 +1,8 @@
 import lzma
 import os
+import shutil
 import tarfile
+import time
 
 import requests
 from git import Repo
@@ -23,10 +25,11 @@ def extract_to_repo(download):
     with lzma.open(download) as f:
         with tarfile.open(fileobj=f) as tar:
             content = tar.extractall("./vivaldi/")
-            allfiles = os.listdir("./vivaldi/vivaldi-source/")
-            for f in allfiles:
-                os.replace("./vivaldi/vivaldi-source/" + f, "./vivaldi/" + f)
+    file_names = os.listdir("./vivaldi/vivaldi-source/")
+    for file_name in file_names:
+        shutil.move(os.path.join("./vivaldi/vivaldi-source", file_name), "./vivaldi")
     os.remove(download)
+    shutil.rmtree("./vivaldi/vivaldi-source")
 
 
 def commit(version):
@@ -35,6 +38,7 @@ def commit(version):
     for f in files.split("\n"):
         repo.git.add(f)
     repo.git.commit("-m", "[Version] {}".format(version))
+    repo.git.push()
 
 
 def vivaldi_versions():
@@ -44,12 +48,12 @@ def vivaldi_versions():
     driver.set_window_size(1920, 1080)
     driver.get("https://vivaldi.com/source/")
     WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, XPATH)))
-    entries = driver.find_elements_by_xpath(XPATH)
+    entries = driver.find_elements(By.XPATH, XPATH)
     num_versions = len(entries)
     versions = []
     for i in range(2, num_versions - 1):
         versions.append(
-            driver.find_element_by_xpath(XPATH + "[" + str(i) + "]" + "/td[1]/a")
+            driver.find_element(By.XPATH, XPATH + "[" + str(i) + "]" + "/td[1]/a")
         )
     versions_dict = {}
     for version in versions:
@@ -62,18 +66,30 @@ def vivaldi_versions():
 
 
 def main():
-    # TODO Pull before doing anything else
-    with open("PROCESSED_VERSIONS", "r+") as f:
-        processed_versions = f.readlines()
-        versions = vivaldi_versions()
-        unprocessed_versions = [
-            (k, v) for (k, v) in versions.items() if k not in processed_versions
-        ]
-        for (version, elem) in unprocessed_versions:
-            download = download_version(elem)
-            extract_to_repo(download)
-            commit(version)
-            f.write(version + "\n")
+    while True:
+        repo = Repo("./vivaldi/")
+        repo.git.pull()
+        with open("PROCESSED_VERSIONS", "r+") as f:
+            processed_versions = f.readlines()
+            versions = vivaldi_versions()
+            unprocessed_versions = [
+                k for k in versions.keys() if k not in processed_versions
+            ]
+
+            def comp(o):
+                return (
+                    int(o.split(".")[0]) * 100000
+                    + int(o.split(".")[1]) * 10000
+                    + int(o.split(".")[2])
+                )
+
+            unprocessed_versions.sort(key=comp)
+            for version in unprocessed_versions:
+                download = download_version(versions[version])
+                extract_to_repo(download)
+                commit(version)
+                f.write(version + "\n")
+        time.sleep(3600)
 
 
 if __name__ == "__main__":
