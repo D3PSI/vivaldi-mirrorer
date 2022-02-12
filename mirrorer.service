@@ -5,7 +5,8 @@ StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-Restart=always
+Restart=on-failure
+User=ubuntu
 ExecStart=/home/ubuntu/app/vivaldi-mirrorer/run.sh
 
 [Install]
