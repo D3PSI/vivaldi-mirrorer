@@ -93,7 +93,7 @@ def main():
                 download = download_version(versions[version])
                 extract_to_repo(download)
                 commit(version)
-                f.write(version + "\n")
+                f.writelines([version + "\n"])
         time.sleep(3600)
 
 
