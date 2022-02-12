@@ -16,13 +16,20 @@ from selenium.webdriver.support.ui import WebDriverWait
 XPATH = '//*[@id="main"]/div/div/div/table/tbody/tr'
 SOURCE = "./vivaldi-source/"
 TARGET = "./vivaldi/"
-DOWNLOAD_FILE = "./download.tar.xz"
+
+
+def download_file(url):
+    local_filename = url.split("/")[-1]
+    with requests.get(url, stream=True, allow_redirects=True) as r:
+        r.raise_for_status()
+        with open(local_filename, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+    return local_filename
 
 
 def download_version(version):
-    file = requests.get(version, allow_redirects=True)
-    open(DOWNLOAD_FILE, "wb").write(file.content)
-    return DOWNLOAD_FILE
+    return download_file(version)
 
 
 def extract_to_repo(download):
