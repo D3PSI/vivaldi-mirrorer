@@ -14,31 +14,31 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 XPATH = '//*[@id="main"]/div/div/div/table/tbody/tr'
+SOURCE = "./vivaldi-source/"
+TARGET = "./vivaldi/"
+DOWNLOAD_FILE = "./download.tar.xz"
 
 
 def download_version(version):
     file = requests.get(version, allow_redirects=True)
-    open("./vivaldi/download.tar.xz", "wb").write(file.content)
-    return "./vivaldi/download.tar.xz"
+    open(DOWNLOAD_FILE, "wb").write(file.content)
+    return DOWNLOAD_FILE
 
 
 def extract_to_repo(download):
     with lzma.open(download) as f:
         with tarfile.open(fileobj=f) as tar:
-            content = tar.extractall("./vivaldi/")
-    file_names = os.listdir("./vivaldi/vivaldi-source/")
-    for file_name in file_names:
-        copy_tree("./vivaldi/vivaldi-source/" + file_name, "./vivaldi/" + file_name)
+            tar.extractall("./")
+    shutil.move(TARGET + ".git", "./.git.tmp")
+    shutil.rmtree(TARGET)
+    shutil.move(SOURCE, TARGET)
+    shutil.move("./.git.tmp", TARGET + ".git")
     os.remove(download)
-    shutil.rmtree("./vivaldi/vivaldi-source")
 
 
 def commit(version):
-    repo = Repo("./vivaldi/")
-    files = repo.git.diff(None, name_only=True)
-    for f in files.split("\n"):
-        if f != "":
-            repo.git.add(f)
+    repo = Repo(TARGET)
+    repo.git.add(all=True)
     repo.git.commit("-m", "[Version] {}".format(version))
     repo.git.push()
 
@@ -53,7 +53,7 @@ def vivaldi_versions():
     entries = driver.find_elements(By.XPATH, XPATH)
     num_versions = len(entries)
     versions = []
-    for i in range(2, num_versions):
+    for i in range(2, num_versions + 1):
         versions.append(
             driver.find_element(By.XPATH, XPATH + "[" + str(i) + "]" + "/td[1]/a")
         )
@@ -69,7 +69,9 @@ def vivaldi_versions():
 
 def main():
     while True:
-        repo = Repo("./vivaldi/")
+        repo = Repo(TARGET)
+        repo.git.reset("--hard", "origin/master")
+        repo.git.checkout("master")
         repo.git.pull()
         with open("PROCESSED_VERSIONS", "r+") as f:
             processed_versions = f.readlines()
@@ -78,15 +80,9 @@ def main():
                 k for k in versions.keys() if k not in processed_versions
             ]
 
-            def comp(o):
-                return (
-                    int(o.split(".")[0]) * 100000
-                    + int(o.split(".")[1]) * 10000
-                    + int(o.split(".")[2])
-                )
-
-            unprocessed_versions.sort(key=comp)
-            for version in unprocessed_versions:
+            for version in sorted(
+                unprocessed_versions, key=lambda v: list(map(int, v.split(".")))
+            ):
                 download = download_version(versions[version])
                 extract_to_repo(download)
                 commit(version)
