@@ -81,7 +81,7 @@ def main():
         repo.git.checkout("master")
         repo.git.pull()
         with open("PROCESSED_VERSIONS", "r+") as f:
-            processed_versions = f.readlines()
+            processed_versions = f.read().splitlines()
             versions = vivaldi_versions()
             unprocessed_versions = [
                 k for k in versions.keys() if k not in processed_versions
