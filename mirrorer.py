@@ -1,9 +1,10 @@
+import logging
+import logging.handlers
 import lzma
 import os
 import shutil
 import tarfile
 import time
-from distutils.dir_util import copy_tree
 
 import requests
 from git import Repo
@@ -16,6 +17,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 XPATH = '//*[@id="main"]/div/div/div/table/tbody/tr'
 SOURCE = "./vivaldi-source/"
 TARGET = "./vivaldi/"
+
+smtp_handler = logging.handlers.SMTPHandler(
+    mailhost=(os.environ["HOST"], int(os.environ["PORT"])),
+    fromaddr=os.environ["FROM"],
+    toaddrs=os.environ["TO"],
+    subject=u"Vivaldi Bot ran into an exception",
+    credentials=(os.environ["USER"], os.environ["PASS"]),
+    secure=(),
+)
+
+
+logger = logging.getLogger()
+logger.addHandler(smtp_handler)
 
 
 def download_file(url):
@@ -76,25 +90,31 @@ def vivaldi_versions():
 
 def main():
     while True:
-        repo = Repo(TARGET)
-        repo.git.reset("--hard", "origin/master")
-        repo.git.checkout("master")
-        repo.git.pull()
-        with open("PROCESSED_VERSIONS", "r+") as f:
-            processed_versions = f.read().splitlines()
-            versions = vivaldi_versions()
-            unprocessed_versions = [
-                k for k in versions.keys() if k not in processed_versions
-            ]
+        try:
+            repo = Repo(TARGET)
+            repo.git.reset("--hard", "origin/master")
+            repo.git.checkout("master")
+            repo.git.pull()
+            with open("PROCESSED_VERSIONS", "r+") as f:
+                processed_versions = f.read().splitlines()
+                versions = vivaldi_versions()
+                unprocessed_versions = [
+                    k for k in versions.keys() if k not in processed_versions
+                ]
 
-            for version in sorted(
-                unprocessed_versions, key=lambda v: list(map(int, v.split(".")))
-            ):
-                download = download_version(versions[version])
-                extract_to_repo(download)
-                commit(version)
-                f.writelines([version + "\n"])
-        time.sleep(3600)
+                for version in sorted(
+                    unprocessed_versions, key=lambda v: list(map(int, v.split(".")))
+                ):
+                    download = download_version(versions[version])
+                    extract_to_repo(download)
+                    commit(version)
+                    f.writelines([version + "\n"])
+            time.sleep(3600)
+        except KeyboardInterrupt:
+            exit(0)
+        except Exception as e:
+            logger.exception(e)
+            time.sleep(60 * 15)
 
 
 if __name__ == "__main__":
