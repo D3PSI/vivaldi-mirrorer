@@ -54,12 +54,20 @@ def extract_to_repo(download):
     shutil.rmtree(TARGET)
     shutil.move(SOURCE, TARGET)
     if os.path.exists(TARGET + ".git"):
-        if os.path.exists("./.git.tmp/modules"):
-            shutil.rmtree("./.git.tmp/modules")
-        shutil.move(TARGET + ".git/modules/", "./.git.tmp/modules")
-    shutil.rmtree(TARGET + ".git")
+        if os.path.isdir(TARGET + ".git"):
+            shutil.rmtree(TARGET + ".git")
+        else:
+            os.remove(TARGET + ".git")
     shutil.move("./.git.tmp", TARGET + ".git")
     os.remove(download)
+
+
+def fix_gitmodules():
+    def recurse_on_modules(modulepath):
+
+        recurse_on_modules()
+
+    pass
 
 
 def commit(version):
@@ -112,8 +120,10 @@ def main():
                 ):
                     download = download_version(versions[version])
                     extract_to_repo(download)
+                    fix_gitmodules()
                     commit(version)
                     f.writelines([version + "\n"])
+                    f.flush()
             time.sleep(3600)
         except KeyboardInterrupt:
             exit(0)
