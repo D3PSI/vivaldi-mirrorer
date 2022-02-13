@@ -53,11 +53,13 @@ def extract_to_repo(download):
     shutil.move(TARGET + ".git", "./.git.tmp")
     shutil.rmtree(TARGET)
     shutil.move(SOURCE, TARGET)
-    if os.path.exists(TARGET + ".git"):
-        if os.path.isdir(TARGET + ".git"):
-            shutil.rmtree(TARGET + ".git")
-        else:
-            os.remove(TARGET + ".git")
+    for root, dirs, files in os.walk(TARGET):
+        for name in files:
+            if name == ".git":
+                if os.path.isdir(os.path.join(root, name)):
+                    shutil.rmtree(os.path.join(root, name))
+                else:
+                    os.remove(os.path.join(root, name))
     shutil.move("./.git.tmp", TARGET + ".git")
     os.remove(download)
 
