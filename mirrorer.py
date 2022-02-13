@@ -16,7 +16,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 XPATH = '//*[@id="main"]/div/div/div/table/tbody/tr'
 SOURCE = "./vivaldi-source/"
-TARGET = "./vivaldi/"
+TARGET = "../vivaldi/"
 
 smtp_handler = logging.handlers.SMTPHandler(
     mailhost=(os.environ["HOST"], int(os.environ["PORT"])),
@@ -53,8 +53,9 @@ def extract_to_repo(download):
     shutil.move(TARGET + ".git", "./.git.tmp")
     shutil.rmtree(TARGET)
     shutil.move(SOURCE, TARGET)
-    if not os.path.exists(TARGET + ".git"):
-        shutil.move("./.git.tmp", TARGET + ".git")
+    if os.path.exists(TARGET + ".git"):
+        shutil.move(TARGET + ".git/modules/", "./.git.tmp/modules/")
+    shutil.move("./.git.tmp", TARGET + ".git")
     os.remove(download)
 
 
