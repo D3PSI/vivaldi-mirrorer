@@ -22,7 +22,7 @@ smtp_handler = logging.handlers.SMTPHandler(
     mailhost=(os.environ["HOST"], int(os.environ["PORT"])),
     fromaddr=os.environ["FROM"],
     toaddrs=os.environ["TO"],
-    subject=u"Vivaldi Bot ran into an exception",
+    subject="Vivaldi Bot ran into an exception",
     credentials=(os.environ["USER"], os.environ["PASS"]),
     secure=(),
 )
@@ -50,6 +50,7 @@ def extract_to_repo(download):
     with lzma.open(download) as f:
         with tarfile.open(fileobj=f) as tar:
             tar.extractall("./")
+    os.remove(download)
     shutil.move(TARGET + ".git", "./.git.tmp")
     shutil.rmtree(TARGET)
     shutil.move(SOURCE, TARGET)
@@ -66,7 +67,6 @@ def extract_to_repo(download):
                 else:
                     os.remove(os.path.join(root, name))
     shutil.move("./.git.tmp", TARGET + ".git")
-    os.remove(download)
 
 
 def fix_gitmodules():
