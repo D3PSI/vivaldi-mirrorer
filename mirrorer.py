@@ -109,12 +109,15 @@ def main():
             repo.git.reset("--hard", "origin/master")
             repo.git.checkout("master")
             repo.git.pull()
+            processed_something = False
             with open("PROCESSED_VERSIONS", "r+") as f:
                 processed_versions = f.read().splitlines()
                 versions = vivaldi_versions()
                 unprocessed_versions = [
                     k for k in versions.keys() if k not in processed_versions
                 ]
+                if len(unprocessed_versions) > 0:
+                    processed_something = True
 
                 for version in sorted(
                     unprocessed_versions, key=lambda v: list(
@@ -125,10 +128,11 @@ def main():
                     commit(version)
                     f.writelines([version + "\n"])
                     f.flush()
-            repo = Repo()
-            repo.git.add("PROCESSED_VERSIONS")
-            repo.git.commit("-m", "[Version] Update PROCESSED_VERSIONS")
-            repo.git.push()
+            if processed_something:
+                repo = Repo()
+                repo.git.add("PROCESSED_VERSIONS")
+                repo.git.commit("-m", "[Version] Update PROCESSED_VERSIONS")
+                repo.git.push()
             time.sleep(3600)
         except KeyboardInterrupt:
             exit(0)
