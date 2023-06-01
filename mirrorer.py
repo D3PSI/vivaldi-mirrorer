@@ -127,8 +127,7 @@ def main():
                     f.flush()
             repo = Repo()
             repo.git.add("PROCESSED_VERSIONS")
-            repo.git.commit(
-                "-m", "[Version] Update PROCESSED_VERSIONS for {}".format(version))
+            repo.git.commit("-m", "[Version] Update PROCESSED_VERSIONS")
             repo.git.push()
             time.sleep(3600)
         except KeyboardInterrupt:
