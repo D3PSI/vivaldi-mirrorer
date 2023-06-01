@@ -69,14 +69,6 @@ def extract_to_repo(download):
     shutil.move("./.git.tmp", TARGET + ".git")
 
 
-def fix_gitmodules():
-    def recurse_on_modules(modulepath):
-
-        recurse_on_modules()
-
-    pass
-
-
 def commit(version):
     repo = Repo(TARGET)
     repo.git.add(all=True)
@@ -90,13 +82,15 @@ def vivaldi_versions():
     driver = webdriver.Chrome(options=chrome_options)
     driver.set_window_size(1920, 1080)
     driver.get("https://vivaldi.com/source/")
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.XPATH, XPATH)))
+    WebDriverWait(driver, 30).until(
+        EC.presence_of_element_located((By.XPATH, XPATH)))
     entries = driver.find_elements(By.XPATH, XPATH)
     num_versions = len(entries)
     versions = []
     for i in range(2, num_versions + 1):
         versions.append(
-            driver.find_element(By.XPATH, XPATH + "[" + str(i) + "]" + "/td[1]/a")
+            driver.find_element(
+                By.XPATH, XPATH + "[" + str(i) + "]" + "/td[1]/a")
         )
     versions_dict = {}
     for version in versions:
@@ -123,14 +117,19 @@ def main():
                 ]
 
                 for version in sorted(
-                    unprocessed_versions, key=lambda v: list(map(int, v.split(".")))
+                    unprocessed_versions, key=lambda v: list(
+                        map(int, v.split(".")))
                 ):
                     download = download_version(versions[version])
                     extract_to_repo(download)
-                    fix_gitmodules()
                     commit(version)
                     f.writelines([version + "\n"])
                     f.flush()
+            repo = Repo()
+            repo.git.add("PROCESSED_VERSIONS")
+            repo.git.commit(
+                "-m", "[Version] Update PROCESSED_VERSIONS for {}".format(version))
+            repo.git.push()
             time.sleep(3600)
         except KeyboardInterrupt:
             exit(0)
